@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BrewLog — Homebrew Batch Log, Recipe Book &amp; Brew-Day Calculators</title>
+<style>
+  :root{
+    --ink:#2b2118; --muted:#7a6a58; --brand:#9a6a1b; --brand2:#6e4a10;
+    --bg:#f7f2e9; --card:#ffffff; --line:#e3d7c3; --accent:#f6ecd9;
+    --warn:#9a3412; --warnbg:#fdf0e7; --bad:#b3261e; --good:#5d7016;
+  }
+  html{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+  header{background:var(--brand2);color:#fff;padding:14px 16px}
+  header .wrap{max-width:1020px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+  header h1{font-size:20px;margin:0}
+  header .sub{font-size:12.5px;opacity:.88;margin-top:2px}
+  nav{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  nav .wrap{max-width:1020px;margin:0 auto;display:flex;flex-wrap:wrap;gap:2px;padding:6px 8px}
+  nav button{background:none;border:none;padding:9px 12px;font-size:14.5px;cursor:pointer;border-radius:6px;color:var(--ink)}
+  nav button.active{background:var(--accent);color:var(--brand2);font-weight:600}
+  main{max-width:1020px;margin:0 auto;padding:16px 12px 60px}
+  .tab{display:none}
+  .tab.active{display:block}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .card .lbl{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .card .val{font-size:24px;font-weight:700;margin-top:4px}
+  .card .note{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+  .panel h2{margin:0 0 10px;font-size:17px}
+  .panel h3{margin:16px 0 8px;font-size:15px}
+  form.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  input,select,textarea{width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid var(--line);border-radius:6px;font-size:14.5px;background:#fff;color:var(--ink)}
+  textarea{min-height:56px}
+  .btn{background:var(--brand);color:#fff;border:none;padding:9px 16px;border-radius:6px;font-size:14.5px;cursor:pointer}
+  .btn:hover{background:var(--brand2)}
+  .btn.ghost{background:#fff;color:var(--brand2);border:1px solid var(--brand)}
+  .btn.danger{background:#fff;color:var(--bad);border:1px solid var(--bad)}
+  .btn.small{padding:4px 9px;font-size:13px;min-height:40px;}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.total td{font-weight:700;border-top:2px solid var(--ink);border-bottom:none}
+  .msg{font-size:13.5px;margin-top:8px;min-height:18px}
+  .msg.err{color:var(--bad)}
+  .msg.ok{color:var(--good)}
+  .flag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:9px;background:var(--accent);color:var(--brand2)}
+  .flag.hot{background:var(--warnbg);color:var(--warn)}
+  .disclaimer{background:var(--warnbg);border:1px solid #f0c9ae;border-radius:8px;padding:10px 12px;font-size:13.5px;color:#6b3410}
+  .muted{color:var(--muted);font-size:13px}
+  .rowflex{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .spacer{flex:1}
+  .ingrow{display:grid;grid-template-columns:2fr 1fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:end}
+  .ingrow.grain{grid-template-columns:2fr 1fr auto}
+  .calcres{font-size:16px;font-weight:600;margin-top:10px;min-height:24px}
+  .stars{color:var(--brand);letter-spacing:1px}
+  #printSheet{display:none}
+  @media (max-width:640px){
+    .panel{overflow-x:auto}
+    header h1{font-size:17px}
+    .card .val{font-size:20px}
+    th,td{padding:6px 5px;font-size:13px}
+    nav button{padding:8px 9px;font-size:13.5px}
+    .ingrow,.ingrow.grain{grid-template-columns:1fr 1fr}
+  }
+  @media print{
+    header,nav,main{display:none !important}
+    #printSheet{display:block !important;font-size:13px;color:#000}
+    #printSheet h1{font-size:19px;margin:0 0 4px}
+    #printSheet h2{font-size:15px;margin:18px 0 6px}
+    #printSheet table{width:100%;border-collapse:collapse}
+    #printSheet th,#printSheet td{border-bottom:1px solid #bbb;padding:5px 6px;text-align:left}
+    #printSheet td.num,#printSheet th.num{text-align:right}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div>
+      <h1>🍺 BrewLog</h1>
+      <div class="sub">Homebrew batch log, recipe book &amp; brew-day calculators — offline, no account, your data never leaves this device.</div>
+    </div>
+  </div>
+</header>
+<nav>
+  <div class="wrap" id="tabBar">
+    <button data-tab="dashboard" class="active">Dashboard</button>
+    <button data-tab="batches">Batches</button>
+    <button data-tab="recipes">Recipes</button>
+    <button data-tab="calculators">Calculators</button>
+    <button data-tab="inventory">Inventory</button>
+    <button data-tab="settings">Settings &amp; Backup</button>
+    <button data-tab="help">Help</button>
+  </div>
+</nav>
+<main id="app">
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="tab active" id="tab-dashboard">
+    <div class="cards">
+      <div class="card"><div class="lbl">Fermenting now</div><div class="val" id="dashFerm">0</div><div class="note" id="dashFermNote"></div></div>
+      <div class="card"><div class="lbl">Conditioning</div><div class="val" id="dashCond">0</div><div class="note">Packaged, resting</div></div>
+      <div class="card"><div class="lbl">Batches done</div><div class="val" id="dashDone">0</div><div class="note" id="dashDoneNote"></div></div>
+      <div class="card"><div class="lbl">Average rating</div><div class="val" id="dashAvg">—</div><div class="note">Across rated finished batches</div></div>
+    </div>
+    <div class="panel">
+      <h2>In the fermenter</h2>
+      <div id="dashActive"></div>
+    </div>
+    <div class="panel">
+      <h2>Getting around</h2>
+      <p style="margin:6px 0">Log each brew in <b>Batches</b> — grain bill, hop additions, yeast, gravity readings, and tasting notes all live on the batch. Save your repeat brews in <b>Recipes</b> and start a batch from one in a tap. The <b>Calculators</b> tab does the standard brew-day math (ABV, attenuation, priming sugar, strike water, dilution) with the formulas shown in <b>Help</b>.</p>
+      <p class="muted" style="margin:6px 0">Two sample batches are pre-loaded so you can see how everything works — an IPA mid-fermentation and a finished stout. Samples are marked, and one button removes only the samples and anything else marked as a sample.</p>
+      <div class="rowflex">
+        <button class="btn ghost" id="btnClearDemoDash" type="button">Clear sample data</button>
+        <button class="btn ghost" id="btnPrintSummary" type="button">Print batch summary</button>
+        <span class="msg" id="dashMsg"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BATCHES ============ -->
+  <section class="tab" id="tab-batches">
+    <div class="panel">
+      <h2 id="batchFormTitle">Log a batch</h2>
+      <form class="grid" id="batchForm">
+        <div><label for="bName">Batch name</label><input type="text" id="bName" placeholder="e.g. Citra Smash IPA #3"></div>
+        <div><label for="bStyle">Style</label><input type="text" id="bStyle" placeholder="e.g. American IPA"></div>
+        <div><label for="bDate">Brew date</label><input type="date" id="bDate"></div>
+        <div><label for="bSize">Batch size (gal)</label><input inputmode="decimal" type="number" id="bSize" step="0.1" min="0" placeholder="5.0"></div>
+        <div><label for="bStatus">Status</label>
+          <select id="bStatus">
+            <option value="planned">Planned</option>
+            <option value="fermenting">Fermenting</option>
+            <option value="conditioning">Conditioning</option>
+            <option value="done">Done</option>
+          </select></div>
+        <div><label for="bYeast">Yeast</label><input type="text" id="bYeast" placeholder="e.g. US-05, 2 packs"></div>
+        <div><label for="bOg">Original gravity (OG)</label><input inputmode="decimal" type="number" id="bOg" step="0.001" min="0" placeholder="1.050"></div>
+        <div><label for="bOgDate">OG date</label><input type="date" id="bOgDate"></div>
+        <div><label for="bFg">Final gravity (FG)</label><input inputmode="decimal" type="number" id="bFg" step="0.001" min="0" placeholder="1.010"></div>
+        <div><label for="bFgDate">FG date</label><input type="date" id="bFgDate"></div>
+        <div><label for="bPkgDate">Bottling / kegging date</label><input type="date" id="bPkgDate"></div>
+        <div><label for="bPkgType">Packaged as</label>
+          <select id="bPkgType">
+            <option value="">—</option>
+            <option value="bottled">Bottled</option>
+            <option value="kegged">Kegged</option>
+          </select></div>
+        <div><label for="bRating">Rating (your taste)</label>
+          <select id="bRating">
+            <option value="0">Not rated</option>
+            <option value="1">1 — poor</option>
+            <option value="1.5">1.5</option>
+            <option value="2">2</option>
+            <option value="2.5">2.5</option>
+            <option value="3">3 — decent</option>
+            <option value="3.5">3.5</option>
+            <option value="4">4 — good</option>
+            <option value="4.5">4.5</option>
+            <option value="5">5 — outstanding</option>
+          </select></div>
+      </form>
+      <h3>Grain bill</h3>
+      <div id="bGrains"></div>
+      <button class="btn ghost small" id="btnAddGrain" type="button">+ Add grain</button>
+      <h3>Hop additions</h3>
+      <div id="bHops"></div>
+      <button class="btn ghost small" id="btnAddHop" type="button">+ Add hop</button>
+      <form class="grid" style="margin-top:14px">
+        <div style="grid-column:1/-1"><label for="bFermNotes">Fermentation notes</label><textarea id="bFermNotes" placeholder="Temps, dry-hop dates, what you observed…"></textarea></div>
+        <div style="grid-column:1/-1"><label for="bTasting">Tasting notes</label><textarea id="bTasting" placeholder="Aroma, flavor, what you'd change next time…"></textarea></div>
+      </form>
+      <div class="rowflex" style="margin-top:12px">
+        <button class="btn" id="btnSaveBatch" type="button">Save batch</button>
+        <button class="btn ghost" id="btnCancelEdit" type="button" style="display:none">Cancel edit</button>
+        <span class="msg" id="batchMsg"></span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Batch log</h2>
+      <table><thead><tr><th>Brewed</th><th>Batch</th><th>Style</th><th>Status</th><th class="num">OG → FG</th><th class="num">ABV</th><th class="num">Rating</th><th></th></tr></thead>
+      <tbody id="batchList"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ============ RECIPES ============ -->
+  <section class="tab" id="tab-recipes">
+    <div class="panel">
+      <h2 id="recipeFormTitle">Save a recipe</h2>
+      <form class="grid" id="recipeForm">
+        <div><label for="rName">Recipe name</label><input type="text" id="rName" placeholder="e.g. Everyday Pale Ale"></div>
+        <div><label for="rStyle">Style</label><input type="text" id="rStyle" placeholder="e.g. American Pale Ale"></div>
+        <div><label for="rSize">Batch size (gal)</label><input inputmode="decimal" type="number" id="rSize" step="0.1" min="0" placeholder="5.0"></div>
+        <div><label for="rYeast">Yeast</label><input type="text" id="rYeast" placeholder="e.g. US-05"></div>
+        <div style="grid-column:1/-1"><label for="rInstructions">Instructions</label><textarea id="rInstructions" placeholder="Mash, boil, ferment, package — your process notes."></textarea></div>
+        <div style="grid-column:1/-1"><label for="rNotes">Notes</label><textarea id="rNotes" placeholder="Water, tweaks, lessons learned."></textarea></div>
+      </form>
+      <h3>Grain bill</h3>
+      <div id="rGrains"></div>
+      <button class="btn ghost small" id="btnAddRGrain" type="button">+ Add grain</button>
+      <h3>Hop additions</h3>
+      <div id="rHops"></div>
+      <button class="btn ghost small" id="btnAddRHop" type="button">+ Add hop</button>
+      <div class="rowflex" style="margin-top:12px">
+        <button class="btn" id="btnSaveRecipe" type="button">Save recipe</button>
+        <button class="btn ghost" id="btnCancelREdit" type="button" style="display:none">Cancel edit</button>
+        <span class="msg" id="recipeMsg"></span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Recipe book</h2>
+      <div id="recipeList"></div>
+    </div>
+  </section>
+
+  <!-- ============ CALCULATORS ============ -->
+  <section class="tab" id="tab-calculators">
+    <div class="panel">
+      <h2>ABV &amp; attenuation</h2>
+      <form class="grid" id="calcAbvForm">
+        <div><label for="cOg">Original gravity (OG)</label><input inputmode="decimal" type="number" id="cOg" step="0.001" placeholder="1.050"></div>
+        <div><label for="cFg">Final gravity (FG)</label><input inputmode="decimal" type="number" id="cFg" step="0.001" placeholder="1.010"></div>
+        <div><button class="btn" type="submit">Calculate</button></div>
+      </form>
+      <div class="calcres" id="abvResult"></div>
+      <p class="muted">ABV = (OG − FG) × 131.25 · Apparent attenuation = (OG − FG) ÷ (OG − 1) × 100. The standard quick formulas — see Help for notes.</p>
+    </div>
+    <div class="panel">
+      <h2>Priming sugar (bottle conditioning)</h2>
+      <form class="grid" id="calcPrimeForm">
+        <div><label for="pVol">Beer volume (gal)</label><input inputmode="decimal" type="number" id="pVol" step="0.1" min="0" placeholder="5.0"></div>
+        <div><label for="pTemp">Beer temperature (°F)</label><input inputmode="decimal" type="number" id="pTemp" step="1" placeholder="68"></div>
+        <div><label for="pTarget">Target CO₂ (volumes)</label><input inputmode="decimal" type="number" id="pTarget" step="0.1" min="0" placeholder="2.4"></div>
+        <div><label for="pSugar">Sugar</label>
+          <select id="pSugar">
+            <option value="corn">Corn sugar (dextrose)</option>
+            <option value="table">Table sugar (sucrose)</option>
+          </select></div>
+        <div><button class="btn" type="submit">Calculate</button></div>
+      </form>
+      <div class="calcres" id="primeResult"></div>
+      <p class="muted">Accounts for the CO₂ already dissolved in the beer at its warmest post-fermentation temperature. An estimate — when in doubt, prime on the low side: you can drink a slightly soft beer, but over-carbonation risks gushers and bottle bombs. Typical targets: British ales 1.5–2.0, most American styles 2.2–2.7, wheat beers 2.7–3.2.</p>
+    </div>
+    <div class="panel">
+      <h2>Strike water temperature</h2>
+      <form class="grid" id="calcStrikeForm">
+        <div><label for="sRatio">Water-to-grain ratio (qt per lb)</label><input inputmode="decimal" type="number" id="sRatio" step="0.05" min="0" placeholder="1.25"></div>
+        <div><label for="sTarget">Target mash temp (°F)</label><input inputmode="decimal" type="number" id="sTarget" step="1" placeholder="152"></div>
+        <div><label for="sGrain">Grain temp (°F)</label><input inputmode="decimal" type="number" id="sGrain" step="1" placeholder="70"></div>
+        <div><button class="btn" type="submit">Calculate</button></div>
+      </form>
+      <div class="calcres" id="strikeResult"></div>
+      <p class="muted">Palmer's infusion equation. An estimate — a cold mash tun steals a few extra degrees, so many brewers add 2–5°F or preheat the tun.</p>
+    </div>
+    <div class="panel">
+      <h2>Dilution / top-up</h2>
+      <form class="grid" id="calcDiluteForm">
+        <div><label for="dSg">Current gravity</label><input inputmode="decimal" type="number" id="dSg" step="0.001" placeholder="1.060"></div>
+        <div><label for="dVol">Current volume (gal)</label><input inputmode="decimal" type="number" id="dVol" step="0.1" min="0" placeholder="5.0"></div>
+        <div><label for="dAdd">Water to add (gal)</label><input inputmode="decimal" type="number" id="dAdd" step="0.1" min="0" placeholder="1.0"></div>
+        <div><button class="btn" type="submit">Calculate</button></div>
+      </form>
+      <div class="calcres" id="diluteResult"></div>
+      <p class="muted">Gravity points are conserved: new points = old points × (old volume ÷ new volume).</p>
+    </div>
+  </section>
+
+  <!-- ============ INVENTORY ============ -->
+  <section class="tab" id="tab-inventory">
+    <div class="panel">
+      <h2 id="invFormTitle">Add to inventory</h2>
+      <form class="grid" id="invForm">
+        <div><label for="iType">Type</label>
+          <select id="iType">
+            <option value="grain">Grain / malt</option>
+            <option value="hop">Hops</option>
+            <option value="yeast">Yeast</option>
+            <option value="other">Other</option>
+          </select></div>
+        <div><label for="iName">Name</label><input type="text" id="iName" placeholder="e.g. Pale 2-row"></div>
+        <div><label for="iAmount">Amount on hand</label><input inputmode="decimal" type="number" id="iAmount" step="0.01" min="0" placeholder="10"></div>
+        <div><label for="iUnit">Unit</label><input type="text" id="iUnit" list="unitList" placeholder="lb">
+          <datalist id="unitList"><option value="lb"></option><option value="oz"></option><option value="g"></option><option value="packs"></option><option value="each"></option></datalist></div>
+        <div><button class="btn" id="invAdd" type="submit">Save item</button></div>
+      </form>
+      <div class="msg" id="invMsg"></div>
+      <p class="muted">Simple on-hand list — after a brew day, edit the amounts down by what you used. No lot tracking, no costs; that's deliberate.</p>
+    </div>
+    <div class="panel">
+      <h2>On hand</h2>
+      <table><thead><tr><th>Type</th><th>Item</th><th class="num">Amount</th><th>Unit</th><th></th></tr></thead>
+      <tbody id="invList"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS & BACKUP ============ -->
+  <section class="tab" id="tab-settings">
+    <div class="panel">
+      <h2>Brewer settings</h2>
+      <form class="grid" id="setForm">
+        <div><label for="setBrewer">Brewer name</label><input type="text" id="setBrewer" placeholder="Your name / brewery name"></div>
+        <div><label for="setSize">Default batch size (gal)</label><input inputmode="decimal" type="number" id="setSize" step="0.1" min="0"></div>
+        <div><button class="btn" id="setSave" type="submit">Save settings</button></div>
+      </form>
+      <div class="msg" id="setMsg"></div>
+      <p class="muted">Amounts are stored in US units (gallons, pounds, ounces, °F). Calculator results also show metric in parentheses for the numbers brewers most often convert (liters, grams, °C).</p>
+    </div>
+    <div class="panel">
+      <h2>Backup &amp; restore</h2>
+      <p class="muted">Your data lives only in this browser on this device. Export a backup file regularly — it's the only copy. Importing replaces everything currently in the app with the backup's contents.</p>
+      <div class="rowflex">
+        <button class="btn" id="btnExport" type="button">Export backup (JSON)</button>
+        <label class="btn ghost" style="cursor:pointer">Import from file<input type="file" id="importFile" accept=".json,application/json" style="display:none"></label>
+      </div>
+      <label for="importText" style="margin-top:12px">…or paste backup JSON here</label>
+      <textarea id="importText" placeholder="Paste the contents of a BrewLog backup file"></textarea>
+      <div class="rowflex" style="margin-top:8px">
+        <button class="btn ghost" id="btnImportText" type="button">Import pasted backup</button>
+        <span class="msg" id="importMsg"></span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Sample data &amp; erase</h2>
+      <div class="rowflex">
+        <button class="btn ghost" id="btnClearDemo" type="button">Clear sample data only</button>
+        <button class="btn danger" id="btnEraseAll" type="button">Erase EVERYTHING</button>
+        <span class="msg" id="dataMsg"></span>
+      </div>
+      <p class="muted">"Erase EVERYTHING" deletes all batches, recipes, inventory, and settings from this browser and starts empty. It cannot be undone — export a backup first if there's anything you want.</p>
+    </div>
+  <div id="legalSection"></div>
+</section>
+
+  <!-- ============ HELP ============ -->
+  <section class="tab" id="tab-help">
+    <div class="panel">
+      <h2>How BrewLog works</h2>
+      <h3>The idea</h3>
+      <p>One file, no account, no subscription, no cloud — your brew records never leave this device. Log each batch as you brew it, save the recipes you'd brew again, and use the calculators on brew day. Manual entry is the feature: nothing syncs, nothing tracks you, and the file is yours forever.</p>
+      <h3>The formulas (exactly what the calculators run)</h3>
+      <p><b>ABV</b> = (OG − FG) × 131.25. The standard quick formula; very strong beers read slightly low versus the advanced formula, which is normal for every homebrew calculator.</p>
+      <p><b>Apparent attenuation</b> = (OG − FG) ÷ (OG − 1.000) × 100%. Most ale yeasts land at 65–85%.</p>
+      <p><b>Priming sugar.</b> Beer already holds dissolved CO₂ from fermentation, estimated from its warmest post-fermentation temperature T (°F): residual vols = 3.0378 − 0.050062×T + 0.00026555×T². Sugar needed = (target vols − residual vols) × liters of beer × factor, where the factor is 4.41 g per liter per volume for corn sugar (dextrose) and 3.81 for table sugar (sucrose). This is an <b>estimate</b>: actual carbonation varies with how much CO₂ really stayed dissolved. Prime conservatively — over-carbonation can burst bottles.</p>
+      <p><b>Strike water</b> (Palmer): strike temp = (0.2 ÷ ratio) × (target mash temp − grain temp) + target mash temp, with ratio in quarts of water per pound of grain. It assumes a preheated tun; add a few degrees for a cold one.</p>
+      <p><b>Dilution.</b> Gravity points (SG − 1) × 1000 are conserved: new gravity = 1 + (old points × old volume ÷ new volume) ÷ 1000.</p>
+      <h3>Batches &amp; recipes</h3>
+      <p>A recipe is a template. "Brew this" copies the recipe into a new batch — a <i>snapshot</i>. Editing the recipe later never rewrites the batch you already brewed, because the batch is the historical record. Ratings are your own 1–5 taste score; the dashboard average counts finished batches you've rated.</p>
+      <h3>Your data</h3>
+      <p>Everything is stored in this browser's local storage on this device only. Clearing your browser's site data erases it — export backups from Settings &amp; Backup and keep the file somewhere safe. A backup from this app can be re-imported into any copy of BrewLog.</p>
+      <h3>Honest limits &amp; disclaimers</h3>
+      <p>BrewLog is a hobby record-keeping and estimating tool. The calculators implement the standard published formulas and are <b>estimates, not measurements</b> — your hydrometer, thermometer, and scale are the authority. Homebrewing is legal for adults in many places but the rules vary by country, state, and locality, and some places restrict or prohibit it — <b>know and follow your local laws</b>. Drink responsibly, and never sell homebrew where that isn't licensed.</p>
+    </div>
+  </section>
+</main>
+<div id="printSheet"></div>
+
+<script>
+"use strict";
+/* ================= BrewLog ================= */
+var KEY = "brewlog_v1";
+var APP_TAG = "brewlog";
+var STATUSES = ["planned","fermenting","conditioning","done"];
+var STATUS_LABEL = { planned:"Planned", fermenting:"Fermenting", conditioning:"Conditioning", done:"Done" };
+var INV_TYPES = ["grain","hop","yeast","other"];
+var INV_LABEL = { grain:"Grain / malt", hop:"Hops", yeast:"Yeast", other:"Other" };
+
+var _uid = 0;
+function uid(){ _uid++; return "r"+Date.now().toString(36)+_uid.toString(36)+Math.floor(Math.random()*1e6).toString(36); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(ch){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]; }); }
+function round2(x){ return Math.round((Number(x)||0)*100)/100; }
+function num(v){ var n = parseFloat(v); if(!isFinite(n)) return 0; if(n>999999999) n=999999999; if(n<-999999999) n=-999999999; return n; }
+function amt(v){ var n = num(v); return n<0?0:n; }
+function validDate(s){
+  if(typeof s!=="string") return false;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); if(!m) return false;
+  var y=+m[1], mo=+m[2], d=+m[3];
+  if(mo<1||mo>12||d<1||d>31) return false;
+  var dt = new Date(Date.UTC(y, mo-1, d));
+  return dt.getUTCFullYear()===y && dt.getUTCMonth()===mo-1 && dt.getUTCDate()===d;
+}
+function todayStr(){ var d=new Date(); function p(n){return (n<10?"0":"")+n;} return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+function shiftDate(baseStr, days){
+  var y=+baseStr.slice(0,4), mo=+baseStr.slice(5,7), d=+baseStr.slice(8,10);
+  var dt = new Date(Date.UTC(y, mo-1, d) + days*86400000);
+  function p(n){return (n<10?"0":"")+n;}
+  return dt.getUTCFullYear()+"-"+p(dt.getUTCMonth()+1)+"-"+p(dt.getUTCDate());
+}
+function daysBetween(aStr, bStr){
+  if(!validDate(aStr) || !validDate(bStr)) return null;
+  var a = Date.UTC(+aStr.slice(0,4), +aStr.slice(5,7)-1, +aStr.slice(8,10));
+  var b = Date.UTC(+bStr.slice(0,4), +bStr.slice(5,7)-1, +bStr.slice(8,10));
+  return Math.round((b-a)/86400000);
+}
+function grav(v){ var n = num(v); if(!(n>0)) return 0; if(n<0.9) n=0.9; if(n>1.3) n=1.3; return Math.round(n*1000)/1000; }
+function fmtGrav(v){ return v ? v.toFixed(3) : "—"; }
+function stars(r){
+  if(!(r>0)) return "—";
+  var full = Math.floor(r), half = (r - full) >= 0.5, s = "";
+  for(var i=0;i<full;i++) s += "★";
+  if(half) s += "½";
+  return '<span class="stars">'+s+"</span> "+r;
+}
+
+/* ---------- calculators (pure) ---------- */
+function calcAbv(og, fg){ return (og - fg) * 131.25; }
+function calcAttenuation(og, fg){ if(!(og > 1)) return 0; return (og - fg) / (og - 1) * 100; }
+function residualCO2(tempF){ return 3.0378 - 0.050062*tempF + 0.00026555*tempF*tempF; }
+var PRIME_FACTOR = { corn: 4.41, table: 3.81 }; /* grams per liter per volume of CO2 */
+function calcPriming(volGal, tempF, targetVols, sugar){
+  var res = residualCO2(tempF);
+  var diff = targetVols - res;
+  var liters = volGal * 3.78541;
+  var factor = PRIME_FACTOR[sugar] || PRIME_FACTOR.corn;
+  var grams = diff > 0 ? diff * liters * factor : 0;
+  return { residual: res, diff: diff, grams: grams, ounces: grams / 28.3495 };
+}
+function calcStrike(ratioQtPerLb, targetF, grainF){ if(!(ratioQtPerLb > 0)) return 0; return (0.2 / ratioQtPerLb) * (targetF - grainF) + targetF; }
+function calcDilution(sg, volGal, addGal){
+  if(!(volGal > 0) || addGal < 0) return 0;
+  var points = (sg - 1) * 1000;
+  return 1 + (points * volGal / (volGal + addGal)) / 1000;
+}
+
+/* ---------- state ---------- */
+function defaultSettings(){ return { brewerName:"", defaultSize:5 }; }
+function blankState(){ return { app:APP_TAG, settings: defaultSettings(), batches:[], recipes:[], inventory:[], meta:{ demoCleared:false } }; }
+function seedDemo(){
+  var st = blankState();
+  var today = todayStr();
+  var ipaDate = shiftDate(today, -6), stoutDate = shiftDate(today, -48), stoutPkg = shiftDate(today, -20);
+  st.batches.push({
+    id: uid(), name:"Citra Smash IPA (sample)", style:"American IPA", recipeId:"", brewDate:ipaDate, sizeGal:5,
+    status:"fermenting",
+    grains:[{name:"Pale 2-row", amtLb:11},{name:"Flaked oats", amtLb:1}],
+    hops:[{name:"Citra", amtOz:1, timing:"60 min"},{name:"Citra", amtOz:2, timing:"Whirlpool"},{name:"Citra", amtOz:2, timing:"Dry hop — day 5"}],
+    yeast:"US-05, 2 packs", og:1.064, ogDate:ipaDate, fg:0, fgDate:"", fermNotes:"Pitched at 66°F. Krausen high on day 2. Dry hops in on day 5.",
+    packageDate:"", packageType:"", tasting:"", rating:0, demo:true
+  });
+  st.batches.push({
+    id: uid(), name:"First Stout (sample)", style:"Dry Stout", recipeId:"", brewDate:stoutDate, sizeGal:5,
+    status:"done",
+    grains:[{name:"Pale 2-row", amtLb:8},{name:"Flaked barley", amtLb:1.5},{name:"Roasted barley", amtLb:1},{name:"Chocolate malt", amtLb:0.5}],
+    hops:[{name:"East Kent Goldings", amtOz:1.5, timing:"60 min"}],
+    yeast:"Irish Ale yeast, 1 pack", og:1.058, ogDate:stoutDate, fg:1.014, fgDate:shiftDate(stoutDate, 14), fermNotes:"Steady 65°F for two weeks.",
+    packageDate:stoutPkg, packageType:"bottled", tasting:"Roasty and dry, good coffee note. A touch thin — bump the flaked barley next time.", rating:4.5, demo:true
+  });
+  st.recipes.push({
+    id: uid(), name:"Everyday Pale Ale (sample recipe)", style:"American Pale Ale", sizeGal:5,
+    grains:[{name:"Pale 2-row", amtLb:10},{name:"Crystal 40L", amtLb:0.75}],
+    hops:[{name:"Cascade", amtOz:1, timing:"60 min"},{name:"Cascade", amtOz:1, timing:"10 min"},{name:"Cascade", amtOz:1, timing:"Flameout"}],
+    yeast:"US-05, 1 pack", instructions:"Mash at 152°F for 60 min. Boil 60 min. Ferment at 66–68°F for two weeks, then bottle or keg.",
+    notes:"The house pale ale. Reliable as-is; try a dry hop for a summer version.", demo:true
+  });
+  st.inventory.push(
+    { id: uid(), type:"grain", name:"Pale 2-row (sample)", amount:14, unit:"lb", demo:true },
+    { id: uid(), type:"hop", name:"Cascade pellets (sample)", amount:6, unit:"oz", demo:true },
+    { id: uid(), type:"yeast", name:"US-05 (sample)", amount:2, unit:"packs", demo:true }
+  );
+  st.settings.brewerName = "";
+  return st;
+}
+
+var state = null;
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function load(){
+  var raw = null;
+  try{ raw = localStorage.getItem(KEY); }catch(e){}
+  if(!raw){ state = seedDemo(); save(); return; }
+  try{
+    var parsed = JSON.parse(raw);
+    state = sanitizeState(parsed);
+    if(!state){ throw new Error("bad shape"); }
+    save(); /* persist the sanitized state so storage and memory always agree */
+  }catch(e){
+    try{ localStorage.setItem(KEY+".corrupt", raw); }catch(e2){}
+    state = seedDemo(); save();
+  }
+}
+function sanitizeIngList(list, isHop){
+  if(!Array.isArray(list)) return [];
+  var out = [];
+  list.forEach(function(r){
+    if(!r || typeof r !== "object") return;
+    var name = String(r.name||"").slice(0,120);
+    if(!name) return;
+    var item = { name:name, amtLb:0, amtOz:0 };
+    if(isHop){ item.amtOz = amt(r.amtOz); item.timing = String(r.timing||"").slice(0,60); delete item.amtLb; }
+    else { item.amtLb = amt(r.amtLb); delete item.amtOz; }
+    out.push(item);
+  });
+  return out;
+}
+function sanitizeBatch(r){
+  if(!r || typeof r !== "object") return null;
+  if(!validDate(r.brewDate)) return null;
+  var st = STATUSES.indexOf(r.status) >= 0 ? r.status : "planned";
+  var pkg = ["bottled","kegged"].indexOf(r.packageType) >= 0 ? r.packageType : "";
+  var rating = num(r.rating); if(rating < 0) rating = 0; if(rating > 5) rating = 5; rating = Math.round(rating*2)/2;
+  return {
+    id: String(r.id||uid()), name: String(r.name||"Untitled batch").slice(0,120), style: String(r.style||"").slice(0,60),
+    recipeId: String(r.recipeId||""), brewDate: r.brewDate, sizeGal: amt(r.sizeGal), status: st,
+    grains: sanitizeIngList(r.grains, false), hops: sanitizeIngList(r.hops, true),
+    yeast: String(r.yeast||"").slice(0,120),
+    og: grav(r.og), ogDate: validDate(r.ogDate) ? r.ogDate : "",
+    fg: grav(r.fg), fgDate: validDate(r.fgDate) ? r.fgDate : "",
+    fermNotes: String(r.fermNotes||"").slice(0,2000),
+    packageDate: validDate(r.packageDate) ? r.packageDate : "", packageType: pkg,
+    tasting: String(r.tasting||"").slice(0,2000), rating: rating, demo: !!r.demo
+  };
+}
+function sanitizeRecipe(r){
+  if(!r || typeof r !== "object") return null;
+  var name = String(r.name||"").slice(0,120);
+  if(!name) return null;
+  return {
+    id: String(r.id||uid()), name: name, style: String(r.style||"").slice(0,60), sizeGal: amt(r.sizeGal),
+    grains: sanitizeIngList(r.grains, false), hops: sanitizeIngList(r.hops, true),
+    yeast: String(r.yeast||"").slice(0,120),
+    instructions: String(r.instructions||"").slice(0,3000), notes: String(r.notes||"").slice(0,2000), demo: !!r.demo
+  };
+}
+function sanitizeInv(r){
+  if(!r || typeof r !== "object") return null;
+  var name = String(r.name||"").slice(0,120);
+  if(!name) return null;
+  var t = INV_TYPES.indexOf(r.type) >= 0 ? r.type : "other";
+  return { id: String(r.id||uid()), type: t, name: name, amount: amt(r.amount), unit: String(r.unit||"").slice(0,20), demo: !!r.demo };
+}
+function sanitizeState(p){
+  if(!p || typeof p !== "object" || Array.isArray(p)) return null;
+  if(!Array.isArray(p.batches) && !Array.isArray(p.recipes) && !Array.isArray(p.inventory)) return null;
+  var st = blankState();
+  var s = (p.settings && typeof p.settings === "object") ? p.settings : {};
+  st.settings.brewerName = String(s.brewerName||"").slice(0,120);
+  st.settings.defaultSize = amt(s.defaultSize) || 5;
+  st.batches = (Array.isArray(p.batches) ? p.batches : []).map(sanitizeBatch).filter(Boolean);
+  st.recipes = (Array.isArray(p.recipes) ? p.recipes : []).map(sanitizeRecipe).filter(Boolean);
+  st.inventory = (Array.isArray(p.inventory) ? p.inventory : []).map(sanitizeInv).filter(Boolean);
+  st.meta = { demoCleared: !!(p.meta && p.meta.demoCleared) };
+  st.legal = sanitizeLegal(p.legal);
+  return st;
+}
+
+/* ---------- UI helpers ---------- */
+function $(id){ return document.getElementById(id); }
+function setMsg(id, text, ok){ var el=$(id); if(!el) return; el.textContent = text||""; el.className = "msg "+(text?(ok?"ok":"err"):""); }
+function showTab(name){
+  Array.prototype.forEach.call(document.querySelectorAll("#tabBar button"), function(b){ b.classList.toggle("active", b.getAttribute("data-tab")===name); });
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(s){ s.classList.toggle("active", s.id==="tab-"+name); });
+}
+function sortByDateDesc(list){ return list.slice().sort(function(a,b){ return a.brewDate<b.brewDate?1:(a.brewDate>b.brewDate?-1:0); }); }
+function batchAbv(b){ return (b.og>0 && b.fg>0) ? calcAbv(b.og, b.fg) : null; }
+function findById(list, id){ for(var i=0;i<list.length;i++){ if(list[i].id===id) return list[i]; } return null; }
+
+/* ---------- ingredient rows (shared by batch & recipe forms) ---------- */
+function ingRow(container, kind, data){
+  var row = document.createElement("div");
+  row.className = "ingrow" + (kind === "grain" ? " grain" : "");
+  row.setAttribute("data-ing", kind);
+  if(kind === "grain"){
+    row.innerHTML = '<div><label>Grain / malt</label><input type="text" data-f="name" placeholder="e.g. Pale 2-row"></div>'
+      + '<div><label>Amount (lb)</label><input inputmode="decimal" type="number" data-f="amtLb" step="0.05" min="0" placeholder="10"></div>'
+      + '<div><button class="btn ghost small" type="button" data-act="rm">Remove</button></div>';
+    if(data){ row.querySelector('[data-f="name"]').value = data.name||""; row.querySelector('[data-f="amtLb"]').value = data.amtLb||""; }
+  } else {
+    row.innerHTML = '<div><label>Hop</label><input type="text" data-f="name" placeholder="e.g. Cascade"></div>'
+      + '<div><label>Amount (oz)</label><input inputmode="decimal" type="number" data-f="amtOz" step="0.05" min="0" placeholder="1"></div>'
+      + '<div><label>Timing</label><input type="text" data-f="timing" placeholder="e.g. 60 min, dry hop"></div>'
+      + '<div><button class="btn ghost small" type="button" data-act="rm">Remove</button></div>';
+    if(data){ row.querySelector('[data-f="name"]').value = data.name||""; row.querySelector('[data-f="amtOz"]').value = data.amtOz||""; row.querySelector('[data-f="timing"]').value = data.timing||""; }
+  }
+  row.querySelector('[data-act="rm"]').addEventListener("click", function(){ row.remove(); });
+  container.appendChild(row);
+}
+function collectIng(container, kind){
+  var out = [];
+  Array.prototype.forEach.call(container.querySelectorAll('[data-ing="'+kind+'"]'), function(row){
+    var name = row.querySelector('[data-f="name"]').value.trim();
+    if(!name) return;
+    if(kind === "grain"){ out.push({ name:name.slice(0,120), amtLb: amt(row.querySelector('[data-f="amtLb"]').value) }); }
+    else { out.push({ name:name.slice(0,120), amtOz: amt(row.querySelector('[data-f="amtOz"]').value), timing: row.querySelector('[data-f="timing"]').value.trim().slice(0,60) }); }
+  });
+  return out;
+}
+function fillIng(container, kind, list){
+  container.innerHTML = "";
+  (list||[]).forEach(function(it){ ingRow(container, kind, it); });
+  if(!(list && list.length)) ingRow(container, kind, null);
+}
+
+/* ---------- render ---------- */
+function render(){
+  renderDashboard(); renderBatches(); renderRecipes(); renderInventory(); renderSettings();
+}
+function renderDashboard(){
+  var today = todayStr();
+  var ferm = state.batches.filter(function(b){ return b.status === "fermenting"; });
+  var cond = state.batches.filter(function(b){ return b.status === "conditioning"; });
+  var done = state.batches.filter(function(b){ return b.status === "done"; });
+  var rated = done.filter(function(b){ return b.rating > 0; });
+  $("dashFerm").textContent = ferm.length;
+  $("dashFermNote").textContent = ferm.length ? "Oldest: "+ferm.slice().sort(function(a,b){ return a.brewDate<b.brewDate?-1:1; })[0].name : "Nothing fermenting";
+  $("dashCond").textContent = cond.length;
+  $("dashDone").textContent = done.length;
+  $("dashDoneNote").textContent = state.batches.length + " total batches logged";
+  $("dashAvg").textContent = rated.length ? (rated.reduce(function(s,b){ return s+b.rating; },0)/rated.length).toFixed(1)+" ★" : "—";
+  var active = state.batches.filter(function(b){ return b.status === "fermenting" || b.status === "conditioning"; });
+  active.sort(function(a,b){ return a.brewDate<b.brewDate?-1:1; });
+  $("dashActive").innerHTML = active.length ? '<table><thead><tr><th>Batch</th><th>Status</th><th class="num">Days in</th><th class="num">OG</th></tr></thead><tbody>'
+    + active.map(function(b){
+        var from = (b.status === "conditioning" && validDate(b.packageDate)) ? b.packageDate : b.brewDate;
+        var d = daysBetween(from, today);
+        return "<tr><td>"+esc(b.name)+(b.demo?' <span class="flag">sample</span>':"")+'</td><td><span class="flag'+(b.status==="fermenting"?" hot":"")+'">'+STATUS_LABEL[b.status]+"</span></td>"
+          + '<td class="num">'+(d==null?"—":d)+"</td><td class=\"num\">"+fmtGrav(b.og)+"</td></tr>";
+      }).join("") + "</tbody></table>"
+    : '<p class="muted">Nothing in the fermenter right now. Start a batch from the Batches tab — or brew a recipe.</p>';
+}
+function renderBatches(){
+  var list = sortByDateDesc(state.batches);
+  $("batchList").innerHTML = list.length ? list.map(function(b){
+    var abv = batchAbv(b);
+    return "<tr><td>"+esc(b.brewDate)+"</td><td>"+esc(b.name)+(b.demo?' <span class="flag">sample</span>':"")+"</td><td>"+esc(b.style)+"</td>"
+      + "<td>"+STATUS_LABEL[b.status]+"</td>"
+      + '<td class="num">'+fmtGrav(b.og)+" → "+fmtGrav(b.fg)+"</td>"
+      + '<td class="num">'+(abv==null?"—":abv.toFixed(2)+"%")+"</td>"
+      + '<td class="num">'+stars(b.rating)+"</td>"
+      + '<td><button class="btn small ghost" data-edit-batch="'+esc(b.id)+'" type="button">Edit</button> '
+      + '<button class="btn small ghost" data-print-batch="'+esc(b.id)+'" type="button">Print</button> '
+      + '<button class="btn small ghost" data-del-batch="'+esc(b.id)+'" type="button">Delete</button></td></tr>';
+  }).join("") : '<tr><td colspan="8" class="muted">No batches logged yet.</td></tr>';
+}
+function ingSummary(list, kind){
+  if(!list || !list.length) return '<span class="muted">None listed.</span>';
+  return list.map(function(it){
+    return esc(it.name)+" — "+(kind === "grain" ? (it.amtLb||0)+" lb" : (it.amtOz||0)+" oz"+(it.timing ? " ("+esc(it.timing)+")" : ""));
+  }).join("<br>");
+}
+function renderRecipes(){
+  var list = state.recipes.slice().sort(function(a,b){ return a.name<b.name?-1:1; });
+  $("recipeList").innerHTML = list.length ? list.map(function(r){
+    return '<div style="border-bottom:1px solid var(--line);padding:10px 0">'
+      + '<div class="rowflex"><b>'+esc(r.name)+"</b>"+(r.demo?' <span class="flag">sample</span>':"")
+      + '<span class="muted">'+esc(r.style)+(r.sizeGal ? " · "+r.sizeGal+" gal" : "")+"</span>"
+      + '<span class="spacer"></span>'
+      + '<button class="btn small" data-brew-recipe="'+esc(r.id)+'" type="button">Brew this</button> '
+      + '<button class="btn small ghost" data-edit-recipe="'+esc(r.id)+'" type="button">Edit</button> '
+      + '<button class="btn small ghost" data-print-recipe="'+esc(r.id)+'" type="button">Print</button> '
+      + '<button class="btn small ghost" data-del-recipe="'+esc(r.id)+'" type="button">Delete</button></div>'
+      + '<div class="muted" style="margin-top:4px">Grains: '+ingSummary(r.grains, "grain")+"<br>Hops: "+ingSummary(r.hops, "hop")
+      + (r.yeast ? "<br>Yeast: "+esc(r.yeast) : "") + "</div></div>";
+  }).join("") : '<p class="muted">No recipes saved yet.</p>';
+}
+function renderInventory(){
+  var order = { grain:0, hop:1, yeast:2, other:3 };
+  var list = state.inventory.slice().sort(function(a,b){ return (order[a.type]-order[b.type]) || (a.name<b.name?-1:1); });
+  $("invList").innerHTML = list.length ? list.map(function(it){
+    return "<tr><td>"+INV_LABEL[it.type]+"</td><td>"+esc(it.name)+(it.demo?' <span class="flag">sample</span>':"")+"</td>"
+      + '<td class="num">'+it.amount+"</td><td>"+esc(it.unit)+"</td>"
+      + '<td><button class="btn small ghost" data-edit-inv="'+esc(it.id)+'" type="button">Edit</button> '
+      + '<button class="btn small ghost" data-del-inv="'+esc(it.id)+'" type="button">Delete</button></td></tr>';
+  }).join("") : '<tr><td colspan="5" class="muted">Nothing on hand yet.</td></tr>';
+}
+function renderSettings(){
+  if(document.activeElement && ["setBrewer","setSize"].indexOf(document.activeElement.id) >= 0) return;
+  $("setBrewer").value = state.settings.brewerName;
+  $("setSize").value = state.settings.defaultSize;
+}
+
+/* ---------- batch form ---------- */
+var editBatchId = null;
+function resetBatchForm(){
+  editBatchId = null;
+  $("batchFormTitle").textContent = "Log a batch";
+  $("btnSaveBatch").textContent = "Save batch";
+  $("btnCancelEdit").style.display = "none";
+  $("bName").value = ""; $("bStyle").value = ""; $("bDate").value = todayStr();
+  $("bSize").value = state.settings.defaultSize || "";
+  $("bStatus").value = "planned"; $("bYeast").value = "";
+  $("bOg").value = ""; $("bOgDate").value = ""; $("bFg").value = ""; $("bFgDate").value = "";
+  $("bPkgDate").value = ""; $("bPkgType").value = ""; $("bRating").value = "0";
+  $("bFermNotes").value = ""; $("bTasting").value = "";
+  fillIng($("bGrains"), "grain", []); fillIng($("bHops"), "hop", []);
+}
+function loadBatchForm(b){
+  editBatchId = b.id;
+  $("batchFormTitle").textContent = "Edit batch";
+  $("btnSaveBatch").textContent = "Save changes";
+  $("btnCancelEdit").style.display = "";
+  $("bName").value = b.name; $("bStyle").value = b.style; $("bDate").value = b.brewDate;
+  $("bSize").value = b.sizeGal || ""; $("bStatus").value = b.status; $("bYeast").value = b.yeast;
+  $("bOg").value = b.og || ""; $("bOgDate").value = b.ogDate; $("bFg").value = b.fg || ""; $("bFgDate").value = b.fgDate;
+  $("bPkgDate").value = b.packageDate; $("bPkgType").value = b.packageType; $("bRating").value = String(b.rating);
+  $("bFermNotes").value = b.fermNotes; $("bTasting").value = b.tasting;
+  fillIng($("bGrains"), "grain", b.grains); fillIng($("bHops"), "hop", b.hops);
+}
+function saveBatch(){
+  var name = $("bName").value.trim();
+  var date = $("bDate").value;
+  if(!name) return setMsg("batchMsg", "Give the batch a name.");
+  if(!validDate(date)) return setMsg("batchMsg", "Pick a valid brew date.");
+  var og = $("bOg").value === "" ? 0 : grav($("bOg").value);
+  var fg = $("bFg").value === "" ? 0 : grav($("bFg").value);
+  if($("bOg").value !== "" && !(og >= 0.99 && og <= 1.3)) return setMsg("batchMsg", "OG looks off — homebrew gravities run about 1.000–1.120.");
+  if($("bFg").value !== "" && !(fg >= 0.99 && fg <= 1.3)) return setMsg("batchMsg", "FG looks off — homebrew gravities run about 0.990–1.040.");
+  var data = {
+    name: name.slice(0,120), style: $("bStyle").value.trim().slice(0,60), brewDate: date,
+    sizeGal: amt($("bSize").value), status: $("bStatus").value, yeast: $("bYeast").value.trim().slice(0,120),
+    og: og, ogDate: validDate($("bOgDate").value) ? $("bOgDate").value : "",
+    fg: fg, fgDate: validDate($("bFgDate").value) ? $("bFgDate").value : "",
+    fermNotes: $("bFermNotes").value.trim().slice(0,2000),
+    packageDate: validDate($("bPkgDate").value) ? $("bPkgDate").value : "",
+    packageType: $("bPkgType").value, rating: num($("bRating").value),
+    tasting: $("bTasting").value.trim().slice(0,2000),
+    grains: collectIng($("bGrains"), "grain"), hops: collectIng($("bHops"), "hop")
+  };
+  if(editBatchId){
+    var b = findById(state.batches, editBatchId);
+    if(b){ Object.keys(data).forEach(function(k){ b[k] = data[k]; }); }
+    setMsg("batchMsg", "Batch updated.", true);
+  } else {
+    data.id = uid(); data.recipeId = ""; data.demo = false;
+    state.batches.push(data);
+    setMsg("batchMsg", "Batch logged.", true);
+  }
+  save(); render(); resetBatchForm();
+}
+
+/* ---------- recipe form ---------- */
+var editRecipeId = null;
+function resetRecipeForm(){
+  editRecipeId = null;
+  $("recipeFormTitle").textContent = "Save a recipe";
+  $("btnSaveRecipe").textContent = "Save recipe";
+  $("btnCancelREdit").style.display = "none";
+  $("rName").value = ""; $("rStyle").value = ""; $("rSize").value = state.settings.defaultSize || "";
+  $("rYeast").value = ""; $("rInstructions").value = ""; $("rNotes").value = "";
+  fillIng($("rGrains"), "grain", []); fillIng($("rHops"), "hop", []);
+}
+function loadRecipeForm(r){
+  editRecipeId = r.id;
+  $("recipeFormTitle").textContent = "Edit recipe";
+  $("btnSaveRecipe").textContent = "Save changes";
+  $("btnCancelREdit").style.display = "";
+  $("rName").value = r.name; $("rStyle").value = r.style; $("rSize").value = r.sizeGal || "";
+  $("rYeast").value = r.yeast; $("rInstructions").value = r.instructions; $("rNotes").value = r.notes;
+  fillIng($("rGrains"), "grain", r.grains); fillIng($("rHops"), "hop", r.hops);
+}
+function saveRecipe(){
+  var name = $("rName").value.trim();
+  if(!name) return setMsg("recipeMsg", "Give the recipe a name.");
+  var data = {
+    name: name.slice(0,120), style: $("rStyle").value.trim().slice(0,60), sizeGal: amt($("rSize").value),
+    yeast: $("rYeast").value.trim().slice(0,120), instructions: $("rInstructions").value.trim().slice(0,3000),
+    notes: $("rNotes").value.trim().slice(0,2000),
+    grains: collectIng($("rGrains"), "grain"), hops: collectIng($("rHops"), "hop")
+  };
+  if(editRecipeId){
+    var r = findById(state.recipes, editRecipeId);
+    if(r){ Object.keys(data).forEach(function(k){ r[k] = data[k]; }); }
+    setMsg("recipeMsg", "Recipe updated.", true);
+  } else {
+    data.id = uid(); data.demo = false;
+    state.recipes.push(data);
+    setMsg("recipeMsg", "Recipe saved.", true);
+  }
+  save(); render(); resetRecipeForm();
+}
+function brewRecipe(id){
+  var r = findById(state.recipes, id);
+  if(!r) return;
+  var b = {
+    id: uid(), name: r.name, style: r.style, recipeId: r.id, brewDate: todayStr(), sizeGal: r.sizeGal,
+    status: "planned",
+    grains: r.grains.map(function(g){ return { name:g.name, amtLb:g.amtLb }; }),
+    hops: r.hops.map(function(h){ return { name:h.name, amtOz:h.amtOz, timing:h.timing }; }),
+    yeast: r.yeast, og:0, ogDate:"", fg:0, fgDate:"", fermNotes:"", packageDate:"", packageType:"",
+    tasting:"", rating:0, demo:false
+  };
+  state.batches.push(b);
+  save(); render(); showTab("batches");
+  setMsg("batchMsg", "Batch started from the recipe — a snapshot, so editing the recipe later won't change this batch. Set the brew date and status when you brew.", true);
+  if(window.scrollTo) window.scrollTo(0, 0);
+}
+
+/* ---------- inventory form ---------- */
+var editInvId = null;
+function saveInv(){
+  var name = $("iName").value.trim();
+  if(!name){ setMsg("invMsg", "Name the item."); return false; }
+  var data = { type: $("iType").value, name: name.slice(0,120), amount: amt($("iAmount").value), unit: $("iUnit").value.trim().slice(0,20) };
+  if(editInvId){
+    var it = findById(state.inventory, editInvId);
+    if(it){ Object.keys(data).forEach(function(k){ it[k] = data[k]; }); }
+    editInvId = null; $("invFormTitle").textContent = "Add to inventory"; $("invAdd").textContent = "Save item";
+    setMsg("invMsg", "Item updated.", true);
+  } else {
+    data.id = uid(); data.demo = false;
+    state.inventory.push(data);
+    setMsg("invMsg", "Item added.", true);
+  }
+  $("iName").value = ""; $("iAmount").value = ""; $("iUnit").value = "";
+  save(); renderInventory();
+  return true;
+}
+
+/* ---------- calculators UI ---------- */
+function runAbvCalc(){
+  var og = grav($("cOg").value), fg = grav($("cFg").value);
+  if(!(og > 1) || !(fg > 0)){ $("abvResult").textContent = "Enter an OG above 1.000 and an FG."; return; }
+  if(fg > og){ $("abvResult").textContent = "FG is higher than OG — check the readings."; return; }
+  $("abvResult").textContent = "ABV "+calcAbv(og, fg).toFixed(2)+"% · Apparent attenuation "+calcAttenuation(og, fg).toFixed(1)+"%";
+}
+function runPrimeCalc(){
+  var vol = num($("pVol").value), temp = num($("pTemp").value), target = num($("pTarget").value), sugar = $("pSugar").value;
+  if(!(vol > 0)){ $("primeResult").textContent = "Enter the beer volume."; return; }
+  if(!(target > 0)){ $("primeResult").textContent = "Enter a target CO₂ level."; return; }
+  var r = calcPriming(vol, temp, target, sugar);
+  if(r.diff <= 0){
+    $("primeResult").textContent = "The beer already holds about "+r.residual.toFixed(2)+" volumes of CO₂ at "+temp+"°F — at or above your target, so no priming sugar is needed (and adding more risks over-carbonation).";
+    return;
+  }
+  var liters = (vol * 3.78541).toFixed(1);
+  $("primeResult").textContent = "Use "+r.ounces.toFixed(2)+" oz ("+r.grams.toFixed(0)+" g) of "+(sugar === "table" ? "table sugar" : "corn sugar")
+    +" for "+vol+" gal ("+liters+" L). Beer already holds ≈"+r.residual.toFixed(2)+" vols; you're adding ≈"+r.diff.toFixed(2)+" vols. Estimate — err low.";
+}
+function runStrikeCalc(){
+  var ratio = num($("sRatio").value), target = num($("sTarget").value), grain = num($("sGrain").value);
+  if(!(ratio > 0)){ $("strikeResult").textContent = "Enter a water-to-grain ratio above 0."; return; }
+  if(!(target > 0)){ $("strikeResult").textContent = "Enter a target mash temperature."; return; }
+  var t = calcStrike(ratio, target, grain);
+  $("strikeResult").textContent = "Heat strike water to "+t.toFixed(1)+"°F ("+((t-32)*5/9).toFixed(1)+"°C) — estimate; add a few degrees for a cold mash tun.";
+}
+function runDiluteCalc(){
+  var sg = grav($("dSg").value), vol = num($("dVol").value), add = num($("dAdd").value);
+  if(!(sg > 1)){ $("diluteResult").textContent = "Enter a current gravity above 1.000."; return; }
+  if(!(vol > 0)){ $("diluteResult").textContent = "Enter the current volume."; return; }
+  if(add < 0){ $("diluteResult").textContent = "Water to add can't be negative."; return; }
+  var ns = calcDilution(sg, vol, add);
+  $("diluteResult").textContent = "New gravity ≈ "+ns.toFixed(3)+" in "+(vol+add).toFixed(1)+" gal total ("+(((vol+add)*3.78541)).toFixed(1)+" L).";
+}
+
+/* ---------- print ---------- */
+function printHTML(title, bodyHTML){
+  $("printSheet").innerHTML = "<h1>"+esc(title)+"</h1>"
+    + "<p>"+esc(state.settings.brewerName || "BrewLog")+" · Generated "+esc(todayStr())+"</p>"
+    + bodyHTML
+    + '<p style="margin-top:14px;font-size:11.5px">BrewLog — homebrew record. Calculator figures are standard-formula estimates, not measurements.</p>';
+  window.print();
+}
+function printBatch(b){
+  var abv = batchAbv(b);
+  var rows = b.grains.map(function(g){ return "<tr><td>"+esc(g.name)+'</td><td class="num">'+(g.amtLb||0)+" lb</td></tr>"; }).join("");
+  var hrows = b.hops.map(function(h){ return "<tr><td>"+esc(h.name)+'</td><td class="num">'+(h.amtOz||0)+" oz</td><td>"+esc(h.timing||"")+"</td></tr>"; }).join("");
+  printHTML("Batch sheet — "+b.name,
+    "<table><tr><td>Style</td><td>"+esc(b.style||"—")+"</td></tr>"
+    + "<tr><td>Brew date</td><td>"+esc(b.brewDate)+"</td></tr>"
+    + "<tr><td>Batch size</td><td>"+(b.sizeGal||"—")+" gal</td></tr>"
+    + "<tr><td>Status</td><td>"+STATUS_LABEL[b.status]+"</td></tr>"
+    + "<tr><td>Yeast</td><td>"+esc(b.yeast||"—")+"</td></tr>"
+    + "<tr><td>OG</td><td>"+fmtGrav(b.og)+(b.ogDate ? " ("+esc(b.ogDate)+")" : "")+"</td></tr>"
+    + "<tr><td>FG</td><td>"+fmtGrav(b.fg)+(b.fgDate ? " ("+esc(b.fgDate)+")" : "")+"</td></tr>"
+    + (abv != null ? "<tr><td>ABV</td><td>"+abv.toFixed(2)+"% · Attenuation "+calcAttenuation(b.og, b.fg).toFixed(1)+"%</td></tr>" : "")
+    + "<tr><td>Packaged</td><td>"+(b.packageDate ? esc(b.packageDate)+" — "+esc(b.packageType||"") : "—")+"</td></tr>"
+    + "<tr><td>Rating</td><td>"+(b.rating > 0 ? b.rating+" / 5" : "—")+"</td></tr></table>"
+    + (rows ? "<h2>Grain bill</h2><table><thead><tr><th>Grain</th><th class=\"num\">Amount</th></tr></thead><tbody>"+rows+"</tbody></table>" : "")
+    + (hrows ? "<h2>Hop additions</h2><table><thead><tr><th>Hop</th><th class=\"num\">Amount</th><th>Timing</th></tr></thead><tbody>"+hrows+"</tbody></table>" : "")
+    + (b.fermNotes ? "<h2>Fermentation notes</h2><p>"+esc(b.fermNotes)+"</p>" : "")
+    + (b.tasting ? "<h2>Tasting notes</h2><p>"+esc(b.tasting)+"</p>" : ""));
+}
+function printRecipe(r){
+  var rows = r.grains.map(function(g){ return "<tr><td>"+esc(g.name)+'</td><td class="num">'+(g.amtLb||0)+" lb</td></tr>"; }).join("");
+  var hrows = r.hops.map(function(h){ return "<tr><td>"+esc(h.name)+'</td><td class="num">'+(h.amtOz||0)+" oz</td><td>"+esc(h.timing||"")+"</td></tr>"; }).join("");
+  printHTML("Recipe — "+r.name,
+    "<table><tr><td>Style</td><td>"+esc(r.style||"—")+"</td></tr>"
+    + "<tr><td>Batch size</td><td>"+(r.sizeGal||"—")+" gal</td></tr>"
+    + "<tr><td>Yeast</td><td>"+esc(r.yeast||"—")+"</td></tr></table>"
+    + (rows ? "<h2>Grain bill</h2><table><thead><tr><th>Grain</th><th class=\"num\">Amount</th></tr></thead><tbody>"+rows+"</tbody></table>" : "")
+    + (hrows ? "<h2>Hop additions</h2><table><thead><tr><th>Hop</th><th class=\"num\">Amount</th><th>Timing</th></tr></thead><tbody>"+hrows+"</tbody></table>" : "")
+    + (r.instructions ? "<h2>Instructions</h2><p>"+esc(r.instructions)+"</p>" : "")
+    + (r.notes ? "<h2>Notes</h2><p>"+esc(r.notes)+"</p>" : ""));
+}
+function printSummary(){
+  var list = sortByDateDesc(state.batches);
+  var rows = list.map(function(b){
+    var abv = batchAbv(b);
+    return "<tr><td>"+esc(b.brewDate)+"</td><td>"+esc(b.name)+"</td><td>"+esc(b.style)+"</td><td>"+STATUS_LABEL[b.status]+"</td>"
+      + '<td class="num">'+fmtGrav(b.og)+" → "+fmtGrav(b.fg)+"</td>"
+      + '<td class="num">'+(abv == null ? "—" : abv.toFixed(2)+"%")+"</td>"
+      + '<td class="num">'+(b.rating > 0 ? b.rating : "—")+"</td></tr>";
+  }).join("");
+  printHTML("BrewLog — batch summary",
+    list.length ? "<table><thead><tr><th>Brewed</th><th>Batch</th><th>Style</th><th>Status</th><th class=\"num\">OG → FG</th><th class=\"num\">ABV</th><th class=\"num\">Rating</th></tr></thead><tbody>"+rows+"</tbody></table>"
+      : "<p>No batches logged.</p>");
+}
+
+/* ---------- backup ---------- */
+function doImport(text, msgId){
+  var parsed;
+  try{ parsed = JSON.parse(text); }catch(e){ setMsg(msgId, "That backup doesn't parse — check the file and try again."); return; }
+  if(!parsed || parsed.app !== APP_TAG){ setMsg(msgId, "That's not a BrewLog backup — import refused, nothing changed."); return; }
+  var clean = sanitizeState(parsed);
+  if(!clean){ setMsg(msgId, "That backup has an unexpected shape — import refused, nothing changed."); return; }
+  state = clean;
+  save(); render(); resetBatchForm(); resetRecipeForm(); editInvId = null;
+  setMsg(msgId, "Backup imported.", true);
+}
+function clearDemo(msgId){
+  state.batches = state.batches.filter(function(b){ return !b.demo; });
+  state.recipes = state.recipes.filter(function(r){ return !r.demo; });
+  state.inventory = state.inventory.filter(function(i){ return !i.demo; });
+  state.meta.demoCleared = true;
+  save(); render(); resetBatchForm(); resetRecipeForm();
+  setMsg(msgId, "Sample data cleared — your own records are untouched.", true);
+}
+
+/* ---------- events & init ---------- */
+function init(){
+  load();
+  $("bDate").value = todayStr();
+  $("bSize").value = state.settings.defaultSize || "";
+  fillIng($("bGrains"), "grain", []); fillIng($("bHops"), "hop", []);
+  $("rSize").value = state.settings.defaultSize || "";
+  fillIng($("rGrains"), "grain", []); fillIng($("rHops"), "hop", []);
+  render();
+
+  $("tabBar").addEventListener("click", function(e){ var b = e.target.closest("button[data-tab]"); if(b) showTab(b.getAttribute("data-tab")); });
+
+  /* batches */
+  $("btnAddGrain").addEventListener("click", function(){ ingRow($("bGrains"), "grain", null); });
+  $("btnAddHop").addEventListener("click", function(){ ingRow($("bHops"), "hop", null); });
+  $("btnSaveBatch").addEventListener("click", saveBatch);
+  $("btnCancelEdit").addEventListener("click", function(){ resetBatchForm(); setMsg("batchMsg", ""); });
+
+  /* recipes */
+  $("btnAddRGrain").addEventListener("click", function(){ ingRow($("rGrains"), "grain", null); });
+  $("btnAddRHop").addEventListener("click", function(){ ingRow($("rHops"), "hop", null); });
+  $("btnSaveRecipe").addEventListener("click", saveRecipe);
+  $("btnCancelREdit").addEventListener("click", function(){ resetRecipeForm(); setMsg("recipeMsg", ""); });
+
+  /* inventory */
+  $("invForm").addEventListener("submit", function(e){ e.preventDefault(); saveInv(); });
+
+  /* calculators */
+  $("calcAbvForm").addEventListener("submit", function(e){ e.preventDefault(); runAbvCalc(); });
+  $("calcPrimeForm").addEventListener("submit", function(e){ e.preventDefault(); runPrimeCalc(); });
+  $("calcStrikeForm").addEventListener("submit", function(e){ e.preventDefault(); runStrikeCalc(); });
+  $("calcDiluteForm").addEventListener("submit", function(e){ e.preventDefault(); runDiluteCalc(); });
+
+  /* settings */
+  $("setForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    state.settings.brewerName = $("setBrewer").value.trim().slice(0,120);
+    var sz = amt($("setSize").value); state.settings.defaultSize = sz > 0 ? sz : 5;
+    save(); setMsg("setMsg", "Settings saved.", true);
+  });
+  $("btnExport").addEventListener("click", function(){
+    var blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "brewlog-backup.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ try{ URL.revokeObjectURL(a.href); }catch(e){} }, 500);
+  });
+  $("importFile").addEventListener("change", function(){
+    var f = this.files && this.files[0];
+    if(!f) return;
+    var rd = new FileReader();
+    rd.onload = function(){ doImport(String(rd.result||""), "importMsg"); };
+    rd.onerror = function(){ setMsg("importMsg", "Couldn't read that file."); };
+    rd.readAsText(f);
+    this.value = "";
+  });
+  $("btnImportText").addEventListener("click", function(){ doImport($("importText").value, "importMsg"); });
+  $("btnClearDemo").addEventListener("click", function(){ clearDemo("dataMsg"); });
+  $("btnClearDemoDash").addEventListener("click", function(){ clearDemo("dashMsg"); });
+  $("btnEraseAll").addEventListener("click", function(){
+    if(!confirm("Erase EVERYTHING — all batches, recipes, inventory, and settings? This cannot be undone.")) return;
+    state = blankState(); state.meta.demoCleared = true;
+    save(); render(); resetBatchForm(); resetRecipeForm();
+    setMsg("dataMsg", "Everything erased — BrewLog is empty.", true);
+  });
+  $("btnPrintSummary").addEventListener("click", printSummary);
+
+  /* delegated row buttons */
+  document.addEventListener("click", function(e){
+    var t = e.target;
+    var id;
+    if(t.hasAttribute("data-edit-batch")){ var b = findById(state.batches, t.getAttribute("data-edit-batch")); if(b){ loadBatchForm(b); showTab("batches"); if(window.scrollTo) window.scrollTo(0,0); } }
+    else if(t.hasAttribute("data-print-batch")){ var pb = findById(state.batches, t.getAttribute("data-print-batch")); if(pb) printBatch(pb); }
+    else if(t.hasAttribute("data-del-batch")){ id = t.getAttribute("data-del-batch"); var db = findById(state.batches, id); if(!confirm("Delete batch \""+(db?db.name:id)+"\"? This cannot be undone.")) return; state.batches = state.batches.filter(function(x){ return x.id !== id; }); if(editBatchId === id) resetBatchForm(); save(); render(); }
+    else if(t.hasAttribute("data-brew-recipe")){ brewRecipe(t.getAttribute("data-brew-recipe")); }
+    else if(t.hasAttribute("data-edit-recipe")){ var r = findById(state.recipes, t.getAttribute("data-edit-recipe")); if(r){ loadRecipeForm(r); showTab("recipes"); if(window.scrollTo) window.scrollTo(0,0); } }
+    else if(t.hasAttribute("data-print-recipe")){ var pr = findById(state.recipes, t.getAttribute("data-print-recipe")); if(pr) printRecipe(pr); }
+    else if(t.hasAttribute("data-del-recipe")){ id = t.getAttribute("data-del-recipe"); var dr = findById(state.recipes, id); if(!confirm("Delete recipe \""+(dr?dr.name:id)+"\"? This cannot be undone.")) return; state.recipes = state.recipes.filter(function(x){ return x.id !== id; }); if(editRecipeId === id) resetRecipeForm(); save(); render(); }
+    else if(t.hasAttribute("data-edit-inv")){ var it = findById(state.inventory, t.getAttribute("data-edit-inv")); if(it){ editInvId = it.id; $("invFormTitle").textContent = "Edit inventory item"; $("invAdd").textContent = "Save changes"; $("iType").value = it.type; $("iName").value = it.name; $("iAmount").value = it.amount; $("iUnit").value = it.unit; showTab("inventory"); } }
+    else if(t.hasAttribute("data-del-inv")){ id = t.getAttribute("data-del-inv"); var di = findById(state.inventory, id); if(!confirm("Delete inventory item \""+(di?di.name:id)+"\"? This cannot be undone.")) return; state.inventory = state.inventory.filter(function(x){ return x.id !== id; }); save(); renderInventory(); }
+  });
+}
+init();
+
+/* ================= Legal — Terms of Use acceptance (catalog pattern v1.0) ================= */
+var TERMS_VERSION = "1.0";
+var LEGAL_APP_NAME = "BrewLog";
+var LEGAL_HAS_DISCLAIMER = false;
+var LEGAL_TERMS_HTML = "<h3>Terms of Use \u2014 White Wolf Digital Apps</h3><p><b>Version 1.0 (DRAFT \u2014 pending attorney review)</b></p><p><b>Seller: White Wolf Tree Service LLC, selling digital products under the name \"White Wolf Digital\"</b></p><p><b>Contact: whitewolfoklahoma@gmail.com</b></p><h4>1. What you're buying</h4><p>Our apps (including ForgeFit AI, ForgeKitchen, TreeBid Pro, SnowBid,</p><p>WashPrice Pro, RoofSquares, JobProfit Tracker, PastureLedger, and the other</p><p>titles sold under White Wolf Digital) are single-file software tools. When</p><p>you buy one, you are buying a <b>license to use the file</b>, not ownership of</p><p>the software itself.</p><h4>2. Your license</h4><ul><li>You may use the app for your own personal or business work.</li><li>You may open it on your own devices (phone, tablet, computer) and move your</li></ul><p>  own data between them using the app's built-in backup/export tools.</p><ul><li>You may <b>not</b> resell, redistribute, give away, upload, or share the app</li></ul><p>  file (or a copy of it) with anyone else \u2014 including posting it online,</p><p>  bundling it with other products, or selling access to it.</p><ul><li>You may <b>not</b> claim the app as your own work, remove its branding or</li></ul><p>  notices, or use it to build a competing product for resale.</p><ul><li>One purchase = one buyer. A business purchase covers the buyer and their</li></ul><p>  own employees using it for that business's work; it does not cover other</p><p>  businesses.</p><h4>3. Your data stays yours \u2014 and stays on your device</h4><ul><li>The current versions of our apps run <b>entirely on your device</b>. They have</li></ul><p>  no accounts, no sign-in, no analytics, and they collect, transmit, and store</p><p>  <b>none</b> of your information on any server. We never see your data.</p><ul><li>Your records are stored in your browser/app storage on your device. **You</li></ul><p>  are responsible for backing them up** using the app's export tools. If you</p><p>  clear your browser data, lose your device, or uninstall the app, your</p><p>  records may be permanently lost, and we cannot recover them \u2014 we never had</p><p>  a copy.</p><ul><li>Files you export (backups, quotes, PDFs) are under your control. Where you</li></ul><p>  store or send them is up to you.</p><h4>4. Estimates are tools, not guarantees</h4><p>Every number our apps produce \u2014 bids, prices, costs, calorie targets,</p><p>projections, schedules, totals \u2014 is an **estimate generated from the</p><p>information you enter and the settings you choose**. Outputs are aids for</p><p>your own judgment, not guarantees of price, profit, outcome, or result. You</p><p>are responsible for checking any output before relying on it (see also the</p><p>disclaimer that applies to your app: Health Disclaimer for fitness/nutrition</p><p>apps, Estimator Disclaimer for contractor tools). If an input is wrong, the</p><p>output will be wrong.</p><h4>5. Acceptable use</h4><p>Don't use the apps to break the law, infringe anyone's rights, or</p><p>misrepresent quotes, invoices, or records to your own customers. For the</p><p>fitness apps, the guardrails in the app (healthy-rate limits, calorie floor)</p><p>are part of the product \u2014 don't treat the app as a way around them.</p><h4>6. Provided \"as is\"</h4><p>The apps are provided **\"as is\" and \"as available,\" without warranties of</p><p>any kind**, express or implied \u2014 including merchantability, fitness for a</p><p>particular purpose, accuracy of calculations, and uninterrupted or</p><p>error-free operation \u2014 to the maximum extent allowed by law. Software has</p><p>bugs; browsers change; we work to fix problems but do not promise any app is</p><p>error-free or will work on every device or browser forever.</p><h4>7. Limitation of liability</h4><p>To the maximum extent allowed by law:</p><ul><li>We are **not liable for indirect, incidental, special, or consequential</li></ul><p>  damages** \u2014 including lost profits, lost or mispriced jobs, lost data, or</p><p>  business interruption \u2014 arising from use of the apps.</p><ul><li>Our total liability for any claim connected to an app is limited to the</li></ul><p>  <b>amount you paid for that app</b>.</p><ul><li>Nothing in these terms limits liability that cannot legally be limited.</li></ul><h4>8. Refunds</h4><p>Refunds are handled **by the storefront you bought from, under that</p><p>storefront's policy** \u2014 Gumroad's refund policy for Gumroad purchases, and</p><p>Google Play's refund policy for Play purchases. These terms do not add to,</p><p>replace, or override the storefront's refund rules. If a file is defective</p><p>and won't open, contact us at whitewolfoklahoma@gmail.com and we'll fix or</p><p>replace the file.</p><h4>9. Updates and changes to these terms</h4><ul><li>We may release updated versions of an app. Updates may add, change, or</li></ul><p>  remove features.</p><ul><li>We may update these terms. The version you agreed to is recorded in the</li></ul><p>  app (version number and date) at first-run acceptance. If terms change,</p><p>  the app may ask you to accept the new version once on next open. Updated</p><p>  terms apply going forward, not retroactively.</p><ul><li>If you don't agree to an updated version of the terms, stop using the app.</li></ul><h4>10. Governing law</h4><p>These terms are governed by the laws of the <b>State of Oklahoma</b>, USA.</p><p>(Attorney to confirm governing law and venue before publication.)</p><h4>11. Contact</h4><p>White Wolf Tree Service LLC (White Wolf Digital) \u2014</p><p>whitewolfoklahoma@gmail.com.</p><h4>CONNECTED FEATURES \u2014 takes effect only when these features ship</h4><p>*The sections below apply only to future connected features (device sync via</p><p>Health Connect, AI voice logging, and the AI Goal Preview in ForgeFit). They</p><p>do not apply to the current offline versions, which never transmit data.*</p><ul><li><b>Opt-in only.</b> Connected features are off by default. Each one asks for</li></ul><p>  your separate, explicit consent \u2014 on its own consent screen, in plain</p><p>  language \u2014 before anything leaves your device. Declining never disables</p><p>  the app's offline features.</p><ul><li><b>What gets sent.</b> Only what the consent screen names, only when you use</li></ul><p>  the feature: for example, a meal description (text, or audio only if cloud</p><p>  transcription is on) for AI voice logging, or the single photo you choose</p><p>  for an AI Goal Preview.</p><ul><li><b>No retention by us.</b> Our relay service passes your request to the named</li></ul><p>  AI provider and keeps nothing \u2014 no copies of your photos, audio,</p><p>  transcripts, or entries are stored on our servers. Provider handling is</p><p>  described on the consent screen and in the Privacy Policy.</p><ul><li><b>Health data stays on the device.</b> Device sync (Health Connect) reads</li></ul><p>  your health data on your phone and stores it in the app on your phone. It</p><p>  is not uploaded to us.</p><ul><li><b>Allowances.</b> Some connected features run on third-party AI services we</li></ul><p>  pay for per use, so they may include a monthly allowance described in the</p><p>  app (for example, a set number of AI previews or voice entries per month),</p><p>  with optional additional credits. Allowances and pricing will be shown in</p><p>  the app before you use the feature; they are not a subscription unless the</p><p>  app says so in plain words.</p><ul><li><b>Permissions.</b> Connected features may request device permissions (such</li></ul><p>  as Health Connect access or the microphone) at the moment you first use</p><p>  them. You can revoke permissions any time in your device settings; the</p><p>  related feature will simply stop working.</p>";
+var LEGAL_DISCLAIMER_HTML = "<h3>Estimator Disclaimer \u2014 Contractor &amp; Trade Tools</h3><p>**Applies to: TreeBid Pro, SnowBid, WashPrice Pro, RoofSquares, JobProfit</p><p>Tracker, FieldForms Toolkit, PaintPro, FenceDeck, MarketMaker, and the other</p><p>estimating/pricing tools sold under White Wolf Digital \u2014 including bundles</p><p>that contain them.**</p><h4>Estimating aids, not finished quotes</h4><ul><li>These apps are <b>estimating and record-keeping aids</b>. Every bid, price,</li></ul><p>  cost, measurement, and total they produce is an **estimate based on the</p><p>  information and rates you enter**.</p><ul><li>**You \u2014 the business owner \u2014 are responsible for verifying everything</li></ul><p>  before you quote a customer:** measurements and quantities, site</p><p>  conditions, your current material and labor costs, your rates and margins,</p><p>  taxes, permit and license requirements, disposal rules, and any contract</p><p>  terms.</p><ul><li>Default rates, presets, and sample data included in the apps are starting</li></ul><p>  points only. They are not market prices, not industry standards, and not</p><p>  a recommendation of what you should charge.</p><ul><li>A saved quote keeps the prices in effect when you created it (price</li></ul><p>  snapshot). Changing your presets later does not change saved quotes \u2014</p><p>  and a saved quote is still your responsibility to review before sending.</p><h4>Specific tools</h4><ul><li><b>TreeBid Pro:</b> tree work is dangerous and site-specific. Difficulty</li></ul><p>  factors and presets cannot see the actual tree, lean, rot, targets, or</p><p>  access. Inspect every job in person before final pricing. The \"Invoice</p><p>  with Wave\" feature is an open-and-paste handoff \u2014 TreeBid does not</p><p>  connect to Wave, and the invoice you send from Wave is yours.</p><ul><li><b>RoofSquares / measurement tools:</b> confirm roof measurements and pitch</li></ul><p>  in person or by your usual method before ordering materials.</p><ul><li><b>SnowBid / seasonal tools:</b> route times, snowfall amounts, and service</li></ul><p>  pricing vary by storm and site; seasonal contracts are your agreement</p><p>  with your customer, on your terms.</p><ul><li><b>JobProfit Tracker:</b> profit figures depend on the costs you enter.</li></ul><p>  The app is not accounting or tax software and does not replace your</p><p>  bookkeeper or accountant.</p><h4>Bottom line</h4><p>If an output and your judgment disagree, trust your judgment \u2014 then fix the</p><p>input. We are not responsible for jobs won, lost, or mispriced based on app</p><p>outputs, within the limits of the Terms of Use.</p>";
+(function(){
+  var lst = document.createElement("style");
+  lst.textContent = "@media print{ #legalOverlay{ display:none !important; } }";
+  document.head.appendChild(lst);
+})();
+function sanitizeLegal(v){
+  if(!v || typeof v !== "object") return null;
+  if(typeof v.termsVersion !== "string" || typeof v.acceptedDate !== "string") return null;
+  return { termsVersion: v.termsVersion.slice(0, 10), acceptedDate: v.acceptedDate.slice(0, 40), disclaimerShown: !!v.disclaimerShown };
+}
+function legalRecord(){
+  try{ var s = state; return (s && s.legal) ? sanitizeLegal(s.legal) : null; }catch(e){ return null; }
+}
+function legalVersionCmp(a, b){
+  var pa = String(a).split("."), pb = String(b).split(".");
+  for(var i = 0; i < 3; i++){ var d = (parseInt(pa[i], 10) || 0) - (parseInt(pb[i], 10) || 0); if(d) return d; }
+  return 0;
+}
+function legalAcceptLine(){
+  var rec = legalRecord();
+  if(rec && rec.acceptedDate) return "You agreed to Terms v" + rec.termsVersion + " on " + rec.acceptedDate.slice(0, 10) + ".";
+  return "No Terms acceptance is recorded on this device yet \u2014 the current Terms will be shown for your agreement.";
+}
+function legalSectionHTML(){
+  var h = '<div style="border-top:2px solid rgba(127,127,127,.35);margin-top:20px;padding-top:14px;">'
+    + '<h2>Legal</h2>'
+    + '<p>' + legalAcceptLine() + '</p>'
+    + '<h3>Terms of Use (v' + TERMS_VERSION + ')</h3>'
+    + '<div style="max-height:340px;overflow-y:auto;border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:10px 14px;font-size:14px;line-height:1.55;">' + LEGAL_TERMS_HTML + '</div>';
+  if(LEGAL_HAS_DISCLAIMER){
+    h += '<h3>Estimator Disclaimer</h3>'
+      + '<div style="max-height:260px;overflow-y:auto;border:1px solid rgba(127,127,127,.4);border-radius:8px;padding:10px 14px;font-size:14px;line-height:1.55;">' + LEGAL_DISCLAIMER_HTML + '</div>';
+  }
+  h += '<h3>Privacy</h3>'
+    + '<p>This app collects no data. It has no accounts, no sign-in, no analytics, and no server \u2014 everything you enter is stored only on this device, in this browser\u2019s storage, and nothing is transmitted anywhere. Files you export (backups, quotes, prints) are under your control. You are responsible for backing up your records with the app\u2019s export tools.</p>'
+    + '<p>Sold by White Wolf Tree Service LLC (White Wolf Digital) \u2014 whitewolfoklahoma@gmail.com</p>'
+    + '</div>';
+  return h;
+}
+function legalFillSection(){
+  var el = document.getElementById("legalSection");
+  if(!el) return;
+  var sig = legalAcceptLine();
+  if(el.getAttribute("data-legal-filled") === sig) return;
+  el.innerHTML = legalSectionHTML(); el.setAttribute("data-legal-filled", sig);
+}
+function legalRefreshSection(){
+  var el = document.getElementById("legalSection");
+  if(el){ el.innerHTML = legalSectionHTML(); el.setAttribute("data-legal-filled", legalAcceptLine()); }
+}
+function legalShowOverlay(isUpdate){
+  if(document.getElementById("legalOverlay")) return;
+  var ov = document.createElement("div");
+  ov.id = "legalOverlay";
+  ov.setAttribute("style", "position:fixed;inset:0;z-index:99999;background:rgba(8,10,14,.74);overflow-y:auto;padding:20px 12px;display:flex;align-items:flex-start;justify-content:center;");
+  var discBtn = LEGAL_HAS_DISCLAIMER ? '<button type="button" id="legalReadDisc" style="min-height:44px;padding:10px 14px;border-radius:10px;border:1px solid #9aa4b2;background:#ffffff;color:#1c2733;font-size:15px;cursor:pointer;">Read the Estimator Disclaimer</button>' : '';
+  var checkLabel = LEGAL_HAS_DISCLAIMER ? "I have read the disclaimer and I agree to the Terms of Use" : "I have read and I agree to the Terms of Use";
+  ov.innerHTML = '<div style="background:#ffffff;color:#1c2733;max-width:560px;width:100%;border-radius:14px;padding:22px 20px;box-shadow:0 18px 50px rgba(0,0,0,.45);font-size:15px;line-height:1.55;">'
+    + '<h2 style="margin:0 0 6px;font-size:21px;">' + LEGAL_APP_NAME + ' \u2014 Terms of Use</h2>'
+    + (isUpdate ? '<p style="background:#fdf3d7;border:1px solid #e4cf8a;border-radius:8px;padding:8px 10px;"><b>Our terms were updated (v' + TERMS_VERSION + ').</b></p>' : '')
+    + '<p style="font-size:16px;"><b>Your data stays on your device.</b><br><b>Estimates are aids, not guarantees.</b><br><b>You\'re responsible for checking outputs before you rely on them.</b></p>'
+    + '<p>The full Terms' + (LEGAL_HAS_DISCLAIMER ? ' and Disclaimer are' : ' are') + ' one tap away, now and any time in Settings \u2192 Legal.</p>'
+    + '<div id="legalReader" style="display:none;max-height:44vh;overflow-y:auto;border:1px solid #d5dbe3;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14px;"></div>'
+    + '<p style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="legalReadTerms" style="min-height:44px;padding:10px 14px;border-radius:10px;border:1px solid #9aa4b2;background:#ffffff;color:#1c2733;font-size:15px;cursor:pointer;">Read the full Terms</button>' + discBtn + '</p>'
+    + '<label style="display:flex;gap:10px;align-items:flex-start;margin:12px 0;cursor:pointer;"><input type="checkbox" id="legalCheck" style="width:22px;height:22px;min-width:22px;margin-top:1px;cursor:pointer;"><span>' + checkLabel + '</span></label>'
+    + '<button type="button" id="legalAgree" disabled style="min-height:52px;width:100%;border:0;border-radius:10px;background:#1f5fa8;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer;opacity:.55;">I Agree</button>'
+    + '<p style="font-size:13px;color:#5a6675;margin-bottom:0;">Your records stay loaded behind this screen and are never deleted or locked, whether or not you agree now.</p>'
+    + '</div>';
+  document.body.appendChild(ov);
+  var reader = ov.querySelector("#legalReader");
+  var showing = "";
+  function toggleReader(kind){
+    if(showing === kind){ reader.style.display = "none"; showing = ""; return; }
+    reader.innerHTML = kind === "terms" ? LEGAL_TERMS_HTML : LEGAL_DISCLAIMER_HTML;
+    reader.style.display = "block"; showing = kind;
+    reader.scrollTop = 0;
+  }
+  ov.querySelector("#legalReadTerms").addEventListener("click", function(){ toggleReader("terms"); });
+  var db = ov.querySelector("#legalReadDisc");
+  if(db) db.addEventListener("click", function(){ toggleReader("disc"); });
+  var legalChk = ov.querySelector("#legalCheck");
+  var legalAgreeBtn = ov.querySelector("#legalAgree");
+  legalChk.addEventListener("change", function(){ legalAgreeBtn.disabled = !legalChk.checked; legalAgreeBtn.style.opacity = legalChk.checked ? "1" : ".55"; });
+  legalAgreeBtn.addEventListener("click", function(){
+    if(!legalChk.checked) return;
+    try{ state.legal = { termsVersion: TERMS_VERSION, acceptedDate: new Date().toISOString(), disclaimerShown: LEGAL_HAS_DISCLAIMER }; save(); }catch(e){}
+    if(ov.parentNode) ov.parentNode.removeChild(ov);
+    legalRefreshSection();
+  });
+}
+function legalInit(){
+  legalFillSection();
+  var rec = legalRecord();
+  if(rec && legalVersionCmp(rec.termsVersion, TERMS_VERSION) >= 0) return;
+  legalShowOverlay(!!rec);
+}
+if(typeof MutationObserver !== "undefined"){
+  var legalObs = new MutationObserver(function(){ legalFillSection(); });
+  legalObs.observe(document.documentElement, { childList: true, subtree: true });
+}
+if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ setTimeout(legalInit, 30); });
+else setTimeout(legalInit, 30);
+
+</script>
+</body>
+</html>
